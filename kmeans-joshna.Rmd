@@ -1,0 +1,122 @@
+---
+title: "kmeans"
+author: "joshna katta"
+date: "2022-11-06"
+output:
+  word_document: default
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#loading required packages
+library(flexclust)
+library(cluster)
+library(tidyverse)
+library(ggplot2)
+library(dplyr)
+library(factoextra)
+```
+
+```{r}
+pharma.df = read.csv("C:/Users/Pavan Chaitanya/Downloads/Pharmaceuticals.csv")
+colMeans(is.na(pharma.df))
+```
+
+```{r}
+#normalizing the data 
+norm.pharma = scale(pharma.df[,-c(1:2,12:14)])
+```
+#using wss method finding the optimal k value 
+```{r}
+wss = fviz_nbclust(norm.pharma,kmeans,method = "wss")
+wss
+```
+#finding the optimal k value from the silhouette method
+```{r}
+silhouette = fviz_nbclust(norm.pharma,kmeans,method="silhouette")
+silhouette
+```
+
+*here we got two different k values are from wss method is k= 2 and silhouette method was k = 5*
+```{r}
+#formulating the kmeans with wss 
+wss_kmeans = kmeans(norm.pharma,centers = 2,nstart=50)
+wss_kmeans
+```
+
+
+```{r}
+silhouette_kmeans =kmeans(norm.pharma,centers = 5,nstart = 50)
+silhouette_kmeans
+```
+*therefore by performing the wss method wet get clusters of size 11 and 10.*
+*therefore by performing the silhousette method wet got 5 clusters of sizes are 8,3,2,4,4*
+
+*cluster plot for wss*
+```{r}
+fviz_cluster(wss_kmeans,data = norm.pharma)
+
+
+```
+```{r}
+fviz_cluster(silhouette_kmeans,data = norm.pharma)
+```
+*5 clusters have been noticed from the above. The symbols/shapes in each cluster are 'centroids' of that specific cluster.
+Nstart value 25 and above is defined as no other centroid can be taken into consideration until new data is being added.*
+*(b) Interpret the clusters with respect to the numerical variables used in forming the clusters.*
+```{r}
+#interpretation
+silhouette_clusters = silhouette_kmeans$cluster
+silhouette_cluster = as.data.frame(silhouette_clusters)
+silhouette_2 = cbind(pharma.df,silhouette_clusters)
+cluster_mean = silhouette_2 %>% group_by(silhouette_clusters) %>%
+summarise_all("mean")
+cluster_mean
+```
+
+
+
+#c.pattern with variables 10 to 12.
+```{r}
+library(hrbrthemes)
+#median_recommendation vs cluster
+pharma2 = pharma.df[,c(12,13,14)]
+pharma3 =cbind(pharma2,silhouette_cluster)
+
+ggplot(pharma3,aes(x=silhouette_clusters,fill= Median_Recommendation))+geom_bar(position = "dodge")+labs(title = "Median_Recommendation vs cluster",
+    x ="cluster"                                                                                     ) +
+  theme_bw()
+```
+
+*location versus cluster*
+```{r}
+ggplot(pharma3,aes(x=silhouette_clusters,fill = Location))+ geom_bar(position = "dodge")
+labs(
+  title = "location vs cluster",
+  x= "cluster"
+)+
+  theme_bw()
+```
+*cluster versus exchange*
+```{r}
+ggplot(pharma3,aes(x=silhouette_clusters, fill = Exchange,))+
+geom_bar(postion = "dodge")+
+labs(
+title ="exchange vs cluster",
+x="cluster"
+)+
+theme_bw()
+
+```
+
+#D)
+1.cluster 1 is "Poorly Performing Pharma", has low performance across all features and extremely high BETA and Leverage values.
+2.cluster 2 "Overpriced Pharma", with a high PE ratio
+3.cluster 3 "Currently Profitable Pharma," which has the lowest revenue growth but a solid net profit margin.
+4."Big Pharma" is in Cluster 4, and it has high market capitalization, ROE, ROA, asset turnover, and net profit margin.
+5.The Sil Cluster 5 with the highest Rev Growth is "Future Potential Pharma."
